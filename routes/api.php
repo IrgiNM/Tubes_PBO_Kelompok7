@@ -1,9 +1,6 @@
 <?php
 
-use App\Models\Pengguna;
 use Illuminate\Http\Request;
-use App\Services\UserService;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\UserFileController;
@@ -12,11 +9,6 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// // Rute untuk pengelolaan file JSON user
-// Route::get('/users/{filename}', [UserFileController::class, 'show']);
-// Route::post('/users', [UserFileController::class, 'store']);
-// Route::put('/users/{filename}', [UserFileController::class, 'update']);
-// Route::delete('/users/{filename}', [UserFileController::class, 'destroy']);
 
 Route::get('/users/{filename}', function ($filename) {
     $path = storage_path('app/public/users/' . $filename);
@@ -59,7 +51,6 @@ Route::post('/users', function (Request $request) {
 
 Route::put('/users/{filename}', function (Request $request, $filename) {
     $path = storage_path('app/public/users/' . $filename);
-    Log::info('File path: ' . $path);
 
     // Memastikan file ada
     if (!file_exists($path)) {
@@ -77,34 +68,21 @@ Route::put('/users/{filename}', function (Request $request, $filename) {
             'password' => 'sometimes|required|string|min:5|confirmed',
         ]);
 
-        // Menggunakan filter_var untuk mengambil angka dari string
-        $number = filter_var($filename, FILTER_SANITIZE_NUMBER_INT);
+        // Gabungkan data yang lama dengan data baru
+        $updatedData = array_merge($currentData, $request->only(['username', 'email', 'password']));
 
-        // Mencari data pengguna berdasarkan nomor yang ditemukan
-        $updateData = Pengguna::find($number);
-        if (!$updateData) {
-            return response()->json(['error' => 'User not found'], 404);
-        }
-
-        // Perbarui data pengguna jika ada
-        if ($request->filled('username')) {
-            $updateData->username = $request->username;
-        }
-        if ($request->filled('email')) {
-            $updateData->email = $request->email;
-        }
+        // Encrypt password if it's being updated
         if ($request->filled('password')) {
-            $updateData->password = bcrypt($request->password); // Enkripsi password
+            $updatedData['password'] = bcrypt($request->password);
         }
-        $updateData->save();
 
         // Hapus file JSON lama
         unlink($path);
 
         // Membuat file JSON baru dengan data yang diperbarui
-        Storage::put('public/users/' . $filename, json_encode($updateData, JSON_PRETTY_PRINT));
+        file_put_contents($path, json_encode($updatedData, JSON_PRETTY_PRINT));
 
-        return response()->json(['message' => 'File updated successfully', 'data' => $updateData], 200);
+        return response()->json(['message' => 'File updated successfully', 'data' => $updatedData], 200);
     } catch (Exception $e) {
         return response()->json(['error' => 'Failed to update data: ' . $e->getMessage()], 500);
     }
