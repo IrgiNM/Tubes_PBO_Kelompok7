@@ -2,15 +2,16 @@
 
 namespace App\Services;
 
+use Exception;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
-use Exception;
+use App\Services\InterfaceService\UserInterface;
 
-class UserService
+class UserService implements UserInterface
 {
-    public function registerUser($data)
+    public function registerUser($data): User
     {
         try {
             $user = new User();
