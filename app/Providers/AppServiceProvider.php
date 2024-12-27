@@ -22,6 +22,9 @@ class AppServiceProvider extends ServiceProvider
             return new ProductService();
         });
         
+        $this->app->bind(OrderService::class, function ($app) {
+            return new OrderService();
+        });
     }
 
     /**
